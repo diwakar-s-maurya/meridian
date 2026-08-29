@@ -24,6 +24,12 @@ RUN rm -rf dist && bun build bin/cli.ts src/proxy/server.ts plugin/meridian-v2.t
 # ---- Runtime stage ----
 FROM node:22-alpine
 
+# Alpine has no systemd or dbus, so nothing creates /etc/machine-id — but
+# processIncarnation.ts needs it to fingerprint the session lock owner.
+# Missing, it fails closed and every request errors before reaching Claude.
+RUN cat /proc/sys/kernel/random/uuid | tr -d '-' > /etc/machine-id \
+    && chmod 0444 /etc/machine-id
+
 RUN deluser --remove-home node 2>/dev/null; \
     adduser -D -u 1000 claude \
     && mkdir -p /home/claude/.claude \
